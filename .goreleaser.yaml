@@ -32,17 +32,6 @@ archives:
       - README.md
       - LICENSE
 
-  - id: windows-exe
-    builds:
-      - envoy
-    goos:
-      - windows
-    goarch:
-      - amd64
-    formats:
-      - zip
-    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}_exe"
-
 changelog:
   sort: asc
   filters:
