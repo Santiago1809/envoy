@@ -1,0 +1,302 @@
+# envoy
+
+[![Build Status](https://img.shields.io/github/actions/workflow/status/envoy-cli/envoy/release.yml)](https://github.com/envoy-cli/envoy/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://golang.org/dl/)
+[![Platform Support](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20Windows-blue)](https://github.com/envoy-cli/envoy/releases)
+
+A smart environment variable manager for developers. Envoy helps you compare, sync, audit, encrypt, and watch your `.env` files with zero configuration.
+
+## The Problem
+
+Managing environment variables across projects is chaotic:
+- `.env` files drift from `.env.example`
+- Hard to know which env vars are actually used in code
+- Sharing secrets with teammates is risky
+- No way to validate env vars before running your app
+
+Envoy solves all of this with a single CLI.
+
+## Quick Demo
+
+```bash
+# Check your env vars are set before running
+$ envoy check --from .env.example
+All required environment variables are set
+
+# See what's different between .env and .env.example
+$ envoy diff
+MISSING in .env (1):
+  + API_KEY
+
+EXTRA in .env (1):
+  - MY_LOCAL_VAR
+
+# Audit your code to find used but undeclared vars
+$ envoy audit ./src --env-file .env.example
+USED but NOT DECLARED (2):
+  + DATABASE_URL (src/db.go:15)
+  + JWT_SECRET (src/auth.go:8)
+
+DECLARED but NOT USED (1):
+  - DEBUG_MODE
+```
+
+## Installation
+
+### Go Install
+
+```bash
+go install github.com/envoy-cli/envoy/cmd/envoy@latest
+```
+
+### Homebrew
+
+```bash
+brew install envoy-cli/tap/envoy
+```
+
+### Download Binary
+
+Download the latest release from [GitHub Releases](https://github.com/envoy-cli/envoy/releases).
+
+## Commands
+
+### info
+
+Print information about a `.env` file.
+
+```bash
+$ envoy info .env
+File: .env
+Keys: 10
+Size: 287 bytes
+Modified: 2026-03-28 14:30:00
+
+Keys:
+  DATABASE_URL = postgres://localhost:5432/mydb
+  DB_HOST = localhost
+  DB_PORT = 5432
+  DB_NAME = myapp
+  DB_PASSWORD = ********
+  APP_PORT = 8080
+  APP_ENV = development
+  JWT_SECRET = ********
+  DEBUG_MODE = true
+  MY_LOCAL_VAR = local_value
+```
+
+### diff
+
+Compare two `.env` files.
+
+```bash
+$ envoy diff .env .env.example
+MISSING in .env (1):
+  + API_KEY
+
+EXTRA in .env (1):
+  - MY_LOCAL_VAR
+```
+
+### sync
+
+Sync keys from `.env` to `.env.example` (strips values).
+
+```bash
+$ envoy sync
+Sync .env -> .env.example
+This will add missing keys from .env to .env.example (values will be stripped).
+Continue? [y/N]: y
+Successfully synced to .env.example
+```
+
+### check
+
+Validate required environment variables are set.
+
+```bash
+$ envoy check --required DATABASE_URL,DB_HOST,API_KEY
+Missing required environment variables:
+  - API_KEY
+exit status 1
+
+$ envoy check --from .env.example
+All required environment variables are set
+```
+
+### audit
+
+Scan source code for environment variable usage.
+
+```bash
+$ envoy audit ./src --env-file .env.example
+
+USED but NOT DECLARED (2):
+  + DATABASE_URL (src/db/connection.go:15)
+  + JWT_SECRET (src/auth/middleware.go:8)
+
+DECLARED but NOT USED (1):
+  - DEBUG_MODE
+```
+
+Supported languages: Go, JavaScript/TypeScript, Python, Shell.
+
+### encrypt
+
+Encrypt a `.env` file for safe sharing.
+
+```bash
+$ envoy encrypt .env --key "your-secure-passphrase"
+Encrypted: .env -> .env.enc.b64
+```
+
+### decrypt
+
+Decrypt an encrypted file.
+
+```bash
+$ envoy decrypt .env.enc.b64 --key "your-secure-passphrase"
+# Outputs decrypted content to stdout
+
+$ envoy decrypt .env.enc.b64 --key "your-secure-passphrase" --out .env.decrypted
+Decrypted: .env.enc.b64 -> .env.decrypted
+```
+
+### verify
+
+Verify integrity of an encrypted file without decrypting.
+
+```bash
+$ envoy verify .env.enc.b64 --key "your-secure-passphrase"
+Integrity OK
+```
+
+### watch
+
+Watch a `.env` file for changes and re-check automatically.
+
+```bash
+$ envoy watch .env --exec "make restart"
+Watching .env for changes... (Ctrl+C to stop)
+```
+
+### keygen
+
+Generate a random 32-byte encryption key.
+
+```bash
+$ envoy keygen
+a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2
+
+Store this key in a password manager!
+```
+
+## Real-World Workflow
+
+### Morning: Start Your Project
+
+```bash
+# Check all env vars are configured
+$ envoy check --from .env.example
+All required environment variables are set
+
+# Start your app
+$ make dev
+```
+
+### During Development: Add a New Env Var
+
+```bash
+# Add the var to your .env
+echo "NEW_FEATURE_FLAG=true" >> .env
+
+# Run audit to see if it's used anywhere
+$ envoy audit ./src --env-file .env.example
+USED but NOT DECLARED (1):
+  + NEW_FEATURE_FLAG (src/features/flags.go:5)
+```
+
+### Before Committing: Sync .env.example
+
+```bash
+# Sync new vars to .env.example
+$ envoy sync
+Sync .env -> .env.example
+Continue? [y/N]: y
+Successfully synced to .env.example
+```
+
+### Code Review: Run Full Audit
+
+```bash
+$ envoy audit ./src --env-file .env.example -v
+USED but NOT DECLARED (5):
+  + DATABASE_URL (src/db.go:15)
+  + API_KEY (src/client.go:10)
+  + JWT_SECRET (src/auth.go:8)
+
+DECLARED but NOT USED (2):
+  - DEBUG_MODE
+  - OLD_FEATURE
+
+DECLARED and USED (8):
+  = DB_HOST
+  = DB_PORT
+  = APP_PORT
+```
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+name: Check Environment
+
+on: [push, pull_request]
+
+jobs:
+  check-env:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install envoy
+        run: go install github.com/envoy-cli/envoy/cmd/envoy@latest
+
+      - name: Check environment variables
+        run: envoy check --from .env.example
+```
+
+### Docker Entrypoint
+
+```dockerfile
+FROM golang:1.22-alpine AS builder
+RUN go install github.com/envoy-cli/envoy/cmd/envoy@latest
+
+FROM alpine:latest
+COPY --from=builder /go/bin/envoy /usr/local/bin/envoy
+COPY .env.example /app/.env.example
+
+# Validate env vars before starting app
+ENTRYPOINT ["envoy", "check", "--from", ".env.example", "&&", "myapp"]
+```
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request.
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests: `go test ./...`
+5. Submit a pull request
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.

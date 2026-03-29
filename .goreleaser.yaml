@@ -1,0 +1,44 @@
+project_name: envoy
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: envoy
+    dir: ./cmd/envoy
+    binary: envoy
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    darwin:
+      - amd64
+      - arm64
+    windows:
+      - amd64
+
+archives:
+  - id: envoy
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+
+changelog:
+  from_tags: true
+
+release:
+  github:
+    owner: envoy-cli
+    name: envoy
+  draft: false
+  prerelease: auto

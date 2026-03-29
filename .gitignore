@@ -1,0 +1,39 @@
+# Binaries
+/bin/
+/dist/
+envoy
+envoy.exe
+*.exe
+
+# Environment files
+.env
+.env.*.local
+.env.local
+
+# Encrypted files
+*.enc
+*.enc.b64
+
+# Test coverage
+coverage.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+*.test
+coverage.txt
+
+# Vendor (if not committed)
+# vendor/
+
+# Build artifacts
+*.zip
+*.tar.gz
