@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -217,49 +218,113 @@ var updateCmd = &cobra.Command{
 				return fmt.Errorf("failed to create install directory: %w", err)
 			}
 
-			tmpPath := filepath.Join(installDir, "envforge.exe.tmp")
-			tmpFile, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+			zipPath := filepath.Join(os.TempDir(), "envforge_update.zip")
+			zipFile, err := os.Create(zipPath)
 			if err != nil {
-				return fmt.Errorf("failed to create temp file: %w", err)
+				return fmt.Errorf("failed to create zip file: %w", err)
 			}
 
-			_, err = io.Copy(tmpFile, downloadResp.Body)
-			tmpFile.Close()
+			_, err = io.Copy(zipFile, downloadResp.Body)
+			zipFile.Close()
 			if err != nil {
-				os.Remove(tmpPath)
-				return fmt.Errorf("failed to write binary: %w", err)
+				os.Remove(zipPath)
+				return fmt.Errorf("failed to download zip: %w", err)
 			}
+
+			reader, err := zip.OpenReader(zipPath)
+			if err != nil {
+				os.Remove(zipPath)
+				return fmt.Errorf("failed to open zip: %w", err)
+			}
+
+			var exeReader io.Reader
+			for _, f := range reader.File {
+				if f.Name == "envforge.exe" {
+					exeFile, err := f.Open()
+					if err != nil {
+						reader.Close()
+						os.Remove(zipPath)
+						return fmt.Errorf("failed to open exe in zip: %w", err)
+					}
+					exeReader = exeFile
+					break
+				}
+			}
+			reader.Close()
+
+			if exeReader == nil {
+				os.Remove(zipPath)
+				return fmt.Errorf("envforge.exe not found in zip")
+			}
+
+			newExePath := filepath.Join(installDir, "envforge_new.exe")
+			newExeFile, err := os.Create(newExePath)
+			if err != nil {
+				os.Remove(zipPath)
+				return fmt.Errorf("failed to create new exe: %w", err)
+			}
+
+			written, err := io.Copy(newExeFile, exeReader)
+			newExeFile.Close()
+			if err != nil {
+				os.Remove(zipPath)
+				os.Remove(newExePath)
+				return fmt.Errorf("failed to write exe: %w", err)
+			}
+
+			if written < 1024*1024 {
+				os.Remove(zipPath)
+				os.Remove(newExePath)
+				return fmt.Errorf("extracted file too small (%d bytes)", written)
+			}
+
+			header := make([]byte, 2)
+			headerFile, err := os.Open(newExePath)
+			if err != nil {
+				os.Remove(zipPath)
+				os.Remove(newExePath)
+				return fmt.Errorf("failed to validate exe: %w", err)
+			}
+			_, err = headerFile.Read(header)
+			headerFile.Close()
+			if err != nil || header[0] != 'M' || header[1] != 'Z' {
+				os.Remove(zipPath)
+				os.Remove(newExePath)
+				return fmt.Errorf("invalid exe header")
+			}
+
+			os.Remove(zipPath)
 
 			selfPathAbs, err := filepath.Abs(selfPath)
 			if err != nil {
-				os.Remove(tmpPath)
+				os.Remove(newExePath)
 				return fmt.Errorf("failed to get absolute path: %w", err)
 			}
 
 			installDirAbs, err := filepath.Abs(installDir)
 			if err != nil {
-				os.Remove(tmpPath)
+				os.Remove(newExePath)
 				return fmt.Errorf("failed to get absolute path: %w", err)
 			}
 
-			tmpPathAbs := filepath.Join(installDirAbs, "envforge.exe.tmp")
+			newExePathAbs := filepath.Join(installDirAbs, "envforge_new.exe")
 
 			batchContent := fmt.Sprintf(`@echo off
 timeout /t 1 /nobreak > nul
 move /y "%s" "%s"
 del "%s"
-`, tmpPathAbs, selfPathAbs, "%~f0")
+`, newExePathAbs, selfPathAbs, "%~f0")
 
 			batchPath := filepath.Join(os.TempDir(), "envforge_update.bat")
 			if err := os.WriteFile(batchPath, []byte(batchContent), 0644); err != nil {
-				os.Remove(tmpPath)
+				os.Remove(newExePath)
 				return fmt.Errorf("failed to write batch script: %w", err)
 			}
 
 			cmd := exec.Command("cmd", "/c", "start", "", batchPath)
 			detachProcess(cmd)
 			if err := cmd.Start(); err != nil {
-				os.Remove(tmpPath)
+				os.Remove(newExePath)
 				os.Remove(batchPath)
 				return fmt.Errorf("failed to start batch script: %w", err)
 			}
