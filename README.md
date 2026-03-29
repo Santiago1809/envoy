@@ -354,6 +354,41 @@ COPY .env.example /app/.env.example
 ENTRYPOINT ["envforge", "check", "--from", ".env.example", "&&", "myapp"]
 ```
 
+## Shell Completions
+
+Generate shell completion scripts for envforge:
+
+```bash
+envforge completion bash
+envforge completion zsh
+envforge completion fish
+envforge completion powershell
+```
+
+### Bash
+
+```bash
+envforge completion bash > /etc/bash_completion.d/envforge
+```
+
+### Zsh
+
+```bash
+envforge completion zsh > "${fpath[1]}/_envforge"
+```
+
+### Fish
+
+```bash
+envforge completion fish > ~/.config/fish/completions/envforge.fish
+```
+
+### PowerShell
+
+```powershell
+envforge completion powershell >> $PROFILE
+```
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request.

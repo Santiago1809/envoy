@@ -1,8 +1,12 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -27,7 +31,7 @@ func joinInts(nums []int) string {
 }
 
 var (
-	version = "dev"
+	Version = "dev"
 	commit  = "unknown"
 	date    = "unknown"
 	noColor bool
@@ -54,6 +58,7 @@ func init() {
 	rootCmd.AddCommand(watchCmd)
 	rootCmd.AddCommand(infoCmd)
 	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(completionCmd)
 
 	viper.BindPFlag("no-color", rootCmd.PersistentFlags().Lookup("no-color"))
@@ -74,9 +79,9 @@ func initConfig() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "envoy",
+	Use:   "envforge",
 	Short: "Smart Environment Variable Manager",
-	Long: `envoy is a developer CLI tool for managing .env files.
+	Long: `envforge is a developer CLI tool for managing .env files.
 It helps you compare, sync, audit, encrypt, and watch your environment variables.`,
 }
 
@@ -84,10 +89,137 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version information",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("envoy version %s\n", version)
+		fmt.Printf("envforge version %s\n", Version)
 		fmt.Printf("  commit: %s\n", commit)
 		fmt.Printf("  date: %s\n", date)
 	},
+}
+
+type GitHubRelease struct {
+	TagName string `json:"tag_name"`
+	Assets  []struct {
+		Name               string `json:"name"`
+		BrowserDownloadURL string `json:"browser_download_url"`
+	} `json:"assets"`
+}
+
+var updateCmd = &cobra.Command{
+	Use:   "update",
+	Short: "Update envforge to the latest release",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		currentVersion := Version
+		if currentVersion == "dev" {
+			return fmt.Errorf("cannot update development version")
+		}
+
+		yes, _ := cmd.Flags().GetBool("yes")
+
+		resp, err := http.Get("https://api.github.com/repos/Santiago1809/envforge/releases/latest")
+		if err != nil {
+			return fmt.Errorf("failed to fetch release info: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("failed to fetch release: status %d", resp.StatusCode)
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read response: %w", err)
+		}
+
+		var release GitHubRelease
+		if err := json.Unmarshal(body, &release); err != nil {
+			return fmt.Errorf("failed to parse release info: %w", err)
+		}
+
+		latestVersion := release.TagName
+		if latestVersion == "" {
+			return fmt.Errorf("no version found in release")
+		}
+
+		if currentVersion == latestVersion {
+			fmt.Printf("Already on latest version (%s)\n", currentVersion)
+			return nil
+		}
+
+		fmt.Printf("Current version: %s\n", currentVersion)
+		fmt.Printf("Latest version: %s\n", latestVersion)
+
+		if !yes {
+			fmt.Print("\nUpdate? [y/N]: ")
+			var response string
+			fmt.Scanln(&response)
+			if strings.ToLower(response) != "y" {
+				fmt.Println("Update cancelled")
+				return nil
+			}
+		}
+
+		osName := runtime.GOOS
+		arch := runtime.GOARCH
+		var assetName string
+		if osName == "windows" {
+			assetName = fmt.Sprintf("envforge_windows_%s.zip", arch)
+		} else {
+			assetName = fmt.Sprintf("envforge_%s_%s.tar.gz", osName, arch)
+		}
+
+		var downloadURL string
+		for _, asset := range release.Assets {
+			if asset.Name == assetName {
+				downloadURL = asset.BrowserDownloadURL
+				break
+			}
+		}
+
+		if downloadURL == "" {
+			return fmt.Errorf("no compatible binary found for %s/%s", osName, arch)
+		}
+
+		fmt.Printf("Downloading from %s...\n", downloadURL)
+
+		downloadResp, err := http.Get(downloadURL)
+		if err != nil {
+			return fmt.Errorf("failed to download: %w", err)
+		}
+		defer downloadResp.Body.Close()
+
+		if downloadResp.StatusCode != http.StatusOK {
+			return fmt.Errorf("download failed: status %d", downloadResp.StatusCode)
+		}
+
+		selfPath, err := os.Executable()
+		if err != nil {
+			return fmt.Errorf("failed to get executable path: %w", err)
+		}
+
+		tmpPath := selfPath + ".tmp"
+		tmpFile, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+		if err != nil {
+			return fmt.Errorf("failed to create temp file: %w", err)
+		}
+
+		_, err = io.Copy(tmpFile, downloadResp.Body)
+		tmpFile.Close()
+		if err != nil {
+			os.Remove(tmpPath)
+			return fmt.Errorf("failed to write binary: %w", err)
+		}
+
+		if err := os.Rename(tmpPath, selfPath); err != nil {
+			os.Remove(tmpPath)
+			return fmt.Errorf("failed to replace binary: %w", err)
+		}
+
+		fmt.Printf("Updated to %s successfully\n", latestVersion)
+		return nil
+	},
+}
+
+func init() {
+	updateCmd.Flags().BoolP("yes", "y", false, "skip confirmation prompt")
 }
 
 var diffCmd = &cobra.Command{
@@ -468,8 +600,10 @@ var completionCmd = &cobra.Command{
 			rootCmd.GenZshCompletion(os.Stdout)
 		case "fish":
 			rootCmd.GenFishCompletion(os.Stdout, true)
+		case "powershell":
+			rootCmd.GenPowerShellCompletionWithDesc(os.Stdout)
 		default:
-			return fmt.Errorf("unsupported shell: %s (bash, zsh, fish)", shell)
+			return fmt.Errorf("unsupported shell: %s (bash, zsh, fish, powershell)", shell)
 		}
 		return nil
 	},
