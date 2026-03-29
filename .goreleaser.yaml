@@ -31,6 +31,9 @@ archives:
       - README.md
       - LICENSE
 
+extra_files:
+  - glob: ./dist/envoy_windows_amd64_v1/*.exe
+
 changelog:
   sort: asc
   filters:

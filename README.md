@@ -44,21 +44,88 @@ DECLARED but NOT USED (1):
 
 ## Installation
 
-### Go Install
+### Option 1 — Go Install (all platforms)
 
+If you have Go installed:
 ```bash
 go install github.com/Santiago1809/envoy/cmd/envoy@latest
 ```
 
-### Homebrew
+The binary will be placed in `$GOPATH/bin` (usually `~/go/bin`).
+Make sure that directory is in your PATH (see platform instructions below).
 
+---
+
+### Option 2 — Download Binary
+
+Download the latest release for your platform from
+[GitHub Releases](https://github.com/Santiago1809/envoy/releases):
+
+| Platform | File |
+|---|---|
+| Windows (64-bit) | `envoy_windows_amd64.zip` |
+| macOS (Apple Silicon) | `envoy_darwin_arm64.tar.gz` |
+| macOS (Intel) | `envoy_darwin_amd64.tar.gz` |
+| Linux (64-bit) | `envoy_linux_amd64.tar.gz` |
+| Linux (ARM) | `envoy_linux_arm64.tar.gz` |
+
+---
+
+### Windows Setup
+
+1. Download and extract `envoy_windows_amd64.zip`
+2. Move `envoy.exe` to a permanent folder, for example:
+   `C:\Users\YOUR_USER\tools\envoy\`
+3. Add that folder to your PATH:
+   - Press `Win + S` and search for **"environment variables"**
+   - Click **"Edit the system environment variables"**
+   - Click **"Environment Variables..."**
+   - Under **"User variables"**, select **Path** and click **Edit**
+   - Click **New** and add: `C:\Users\YOUR_USER\tools\envoy`
+   - Click OK on all dialogs
+4. Open a **new** terminal and verify:
 ```bash
-brew install envoy-cli/tap/envoy
+   envoy --version
 ```
 
-### Download Binary
+---
 
-Download the latest release from [GitHub Releases](https://github.com/Santiago1809/envoy/releases).
+### macOS Setup
+
+1. Download and extract the `.tar.gz` for your architecture:
+```bash
+   # Apple Silicon (M1/M2/M3)
+   tar -xzf envoy_darwin_arm64.tar.gz
+
+   # Intel
+   tar -xzf envoy_darwin_amd64.tar.gz
+```
+2. Move the binary to `/usr/local/bin`:
+```bash
+   mv envoy /usr/local/bin/envoy
+   chmod +x /usr/local/bin/envoy
+```
+3. On first run, macOS may block the binary (Gatekeeper).
+   If you see a security warning:
+   - Open **System Settings** → **Privacy & Security**
+   - Scroll down and click **"Allow Anyway"** next to envoy
+   - Run `envoy --version` again and click **Open** on the dialog
+4. Verify:
+```bash
+   envoy --version
+```
+
+---
+
+### Linux Setup
+```bash
+tar -xzf envoy_linux_amd64.tar.gz
+mv envoy /usr/local/bin/envoy
+chmod +x /usr/local/bin/envoy
+envoy --version
+```
+
+---
 
 ## Commands
 
