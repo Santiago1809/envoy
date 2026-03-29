@@ -11,7 +11,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/Santiago1809/envforge/internal/auditor"
@@ -246,9 +245,7 @@ del "%s"
 			}
 
 			cmd := exec.Command("cmd", "/c", "start", "", batchPath)
-			cmd.SysProcAttr = &syscall.SysProcAttr{
-				CreationFlags: 0x08000000,
-			}
+			detachProcess(cmd)
 			if err := cmd.Start(); err != nil {
 				os.Remove(tmpPath)
 				os.Remove(batchPath)
