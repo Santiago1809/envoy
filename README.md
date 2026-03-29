@@ -429,6 +429,7 @@ envforge completion fish > ~/.config/fish/completions/envforge.fish
 
 # PowerShell
 envforge completion powershell | Out-File -Encoding utf8 $env:TEMP\envforge_completion.ps1
+
 . $env:TEMP\envforge_completion.ps1
 ```
 
