@@ -1,4 +1,4 @@
-module envoy
+module github.com/Santiago1809/envoy
 
 go 1.26.1
 

@@ -1,9 +1,9 @@
 # envoy
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/envoy-cli/envoy/release.yml)](https://github.com/envoy-cli/envoy/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/Santiago1809/envoy/release.yml)](https://github.com/Santiago1809/envoy/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://golang.org/dl/)
-[![Platform Support](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20Windows-blue)](https://github.com/envoy-cli/envoy/releases)
+[![Platform Support](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20Windows-blue)](https://github.com/Santiago1809/envoy/releases)
 
 A smart environment variable manager for developers. Envoy helps you compare, sync, audit, encrypt, and watch your `.env` files with zero configuration.
 
@@ -47,7 +47,7 @@ DECLARED but NOT USED (1):
 ### Go Install
 
 ```bash
-go install github.com/envoy-cli/envoy/cmd/envoy@latest
+go install github.com/Santiago1809/envoy/cmd/envoy@latest
 ```
 
 ### Homebrew
@@ -58,7 +58,7 @@ brew install envoy-cli/tap/envoy
 
 ### Download Binary
 
-Download the latest release from [GitHub Releases](https://github.com/envoy-cli/envoy/releases).
+Download the latest release from [GitHub Releases](https://github.com/Santiago1809/envoy/releases).
 
 ## Commands
 
@@ -267,7 +267,7 @@ jobs:
           go-version: '1.22'
 
       - name: Install envoy
-        run: go install github.com/envoy-cli/envoy/cmd/envoy@latest
+        run: go install github.com/Santiago1809/envoy/cmd/envoy@latest
 
       - name: Check environment variables
         run: envoy check --from .env.example
@@ -277,7 +277,7 @@ jobs:
 
 ```dockerfile
 FROM golang:1.22-alpine AS builder
-RUN go install github.com/envoy-cli/envoy/cmd/envoy@latest
+RUN go install github.com/Santiago1809/envoy/cmd/envoy@latest
 
 FROM alpine:latest
 COPY --from=builder /go/bin/envoy /usr/local/bin/envoy

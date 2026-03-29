@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"envoy/internal/auditor"
-	"envoy/internal/check"
-	"envoy/internal/crypto"
-	"envoy/internal/differ"
-	"envoy/internal/parser"
-	"envoy/internal/watcher"
+	"github.com/Santiago1809/envoy/internal/auditor"
+	"github.com/Santiago1809/envoy/internal/check"
+	"github.com/Santiago1809/envoy/internal/crypto"
+	"github.com/Santiago1809/envoy/internal/differ"
+	"github.com/Santiago1809/envoy/internal/parser"
+	"github.com/Santiago1809/envoy/internal/watcher"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

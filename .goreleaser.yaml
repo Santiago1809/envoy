@@ -2,11 +2,10 @@ project_name: envoy
 
 before:
   hooks:
-    - go mod download
+    - go mod tidy
 
 builds:
-  - id: envoy
-    dir: ./cmd/envoy
+  - main: ./cmd/envoy
     binary: envoy
     env:
       - CGO_ENABLED=0
@@ -17,15 +16,10 @@ builds:
     goarch:
       - amd64
       - arm64
-    darwin:
-      - amd64
-      - arm64
-    windows:
-      - amd64
 
 archives:
-  - id: envoy
-    format: tar.gz
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
       - goos: windows
         format: zip
@@ -34,11 +28,8 @@ archives:
       - LICENSE
 
 changelog:
-  from_tags: true
-
-release:
-  github:
-    owner: envoy-cli
-    name: envoy
-  draft: false
-  prerelease: auto
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
