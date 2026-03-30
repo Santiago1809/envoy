@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-03-29T12:00:00Z",
+  "directory": "",
+  "language": "",
+  "used_not_declared": [
+    {
+      "key": "DATABASE_URL",
+      "references": [
+        {
+          "file": "src/db/connection.go",
+          "lines": [15],
+          "language": ""
+        }
+      ]
+    },
+    {
+      "key": "JWT_SECRET",
+      "references": [
+        {
+          "file": "src/auth/middleware.go",
+          "lines": [8],
+          "language": ""
+        }
+      ]
+    }
+  ],
+  "declared_not_used": ["DEBUG_MODE"],
+  "declared_and_used": ["DB_HOST"]
+}

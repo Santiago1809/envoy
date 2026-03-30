@@ -9,8 +9,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
+
+	"github.com/Santiago1809/envforge/internal/audittypes"
 )
 
 type Language string
@@ -34,6 +37,8 @@ type AuditResult struct {
 	UsedNotDeclared []EnvUsage
 	DeclaredNotUsed []string
 	DeclaredAndUsed []string
+	Directory       string
+	Language        string
 }
 
 type Auditor struct {
@@ -475,6 +480,18 @@ func (a *Auditor) buildResult() (*AuditResult, error) {
 		result.UsedNotDeclared = append(result.UsedNotDeclared, r)
 	}
 
+	// Set metadata
+	result.Directory = a.rootDir
+	if len(a.languages) == 0 {
+		result.Language = ""
+	} else {
+		langStrs := make([]string, len(a.languages))
+		for i, l := range a.languages {
+			langStrs[i] = string(l)
+		}
+		result.Language = strings.Join(langStrs, ",")
+	}
+
 	return result, nil
 }
 
@@ -491,4 +508,34 @@ func AuditDir(rootDir string, envFile string, languages []Language, exclude []st
 	}
 
 	return auditor.Run()
+}
+
+// GroupEnvUsagesByKey groups EnvUsage entries by key, aggregating all file references
+// for each unique key. It returns a slice of audittypes.VarRef.
+func GroupEnvUsagesByKey(usages []EnvUsage) []audittypes.VarRef {
+	keyMap := make(map[string]*audittypes.VarRef)
+
+	for _, u := range usages {
+		ref, ok := keyMap[u.Key]
+		if !ok {
+			ref = &audittypes.VarRef{Key: u.Key}
+			keyMap[u.Key] = ref
+		}
+		ref.References = append(ref.References, audittypes.VarOccurrence{
+			File:     u.File,
+			Lines:    u.Lines,
+			Language: string(u.Language),
+		})
+	}
+
+	// Convert map to slice
+	result := make([]audittypes.VarRef, 0, len(keyMap))
+	for _, ref := range keyMap {
+		result = append(result, *ref)
+	}
+	// Sort by key for deterministic output
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Key < result[j].Key
+	})
+	return result
 }

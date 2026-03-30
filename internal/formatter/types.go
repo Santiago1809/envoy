@@ -1,5 +1,9 @@
 package formatter
 
+import (
+	"github.com/Santiago1809/envforge/internal/audittypes"
+)
+
 type OutputFormat string
 
 const (
@@ -12,19 +16,12 @@ type Formatter interface {
 }
 
 type AuditResultJSON struct {
-	Timestamp    string   `json:"timestamp"`
-	Directory    string   `json:"directory"`
-	Language     string   `json:"language"`
-	Used         []VarRef `json:"used"`          // Used but not declared
-	Declared     []string `json:"declared"`      // Declared but not used
-	OnlyUsed     []string `json:"only_used"`     // Same as Used (keys only)
-	OnlyDeclared []string `json:"only_declared"` // Same as Declared
-}
-
-type VarRef struct {
-	Name string `json:"name"`
-	File string `json:"file"`
-	Line int    `json:"line"`
+	Timestamp       string              `json:"timestamp"`
+	Directory       string              `json:"directory"`
+	Language        string              `json:"language"`
+	UsedNotDeclared []audittypes.VarRef `json:"used_not_declared"`
+	DeclaredNotUsed []string            `json:"declared_not_used"`
+	DeclaredAndUsed []string            `json:"declared_and_used"`
 }
 
 type DiffResultJSON struct {
@@ -45,13 +42,7 @@ type CheckResultJSON struct {
 }
 
 type InfoResultJSON struct {
-	Timestamp string     `json:"timestamp"`
-	File      string     `json:"file"`
-	Keys      []KeyEntry `json:"keys"`
-}
-
-type KeyEntry struct {
-	Name     string `json:"name"`
-	HasValue bool   `json:"has_value"`
-	Length   int    `json:"length"`
+	Timestamp string                `json:"timestamp"`
+	File      string                `json:"file"`
+	Keys      []audittypes.KeyEntry `json:"keys"`
 }

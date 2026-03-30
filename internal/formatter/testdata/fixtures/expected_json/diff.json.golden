@@ -1,0 +1,7 @@
+{
+  "timestamp": "2026-03-29T12:00:00Z",
+  "file1": ".env",
+  "file2": ".env.example",
+  "missing": ["API_KEY"],
+  "extra": ["MY_LOCAL_VAR"]
+}

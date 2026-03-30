@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/Santiago1809/envforge/internal/auditor"
+	"github.com/Santiago1809/envforge/internal/audittypes"
 	"github.com/Santiago1809/envforge/internal/check"
 	"github.com/Santiago1809/envforge/internal/differ"
 	"github.com/Santiago1809/envforge/internal/parser"
@@ -138,9 +140,82 @@ func joinInts(nums []int) string {
 type JSONFormatter struct{}
 
 func (f *JSONFormatter) Render(data any) error {
+	var out any
+	switch v := data.(type) {
+	case *auditor.AuditResult:
+		out = f.convertAudit(v)
+	case *differ.DiffOutput:
+		out = f.convertDiff(v)
+	case *check.CheckResult:
+		out = f.convertCheck(v)
+	case *parser.EnvFile:
+		out = f.convertInfo(v)
+	default:
+		return fmt.Errorf("unsupported data type for JSON formatter: %T", data)
+	}
+
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
-	return enc.Encode(data)
+	return enc.Encode(out)
+}
+
+func (f *JSONFormatter) convertAudit(r *auditor.AuditResult) AuditResultJSON {
+	return AuditResultJSON{
+		Timestamp:       time.Now().UTC().Format(time.RFC3339),
+		Directory:       r.Directory,
+		Language:        r.Language,
+		UsedNotDeclared: auditor.GroupEnvUsagesByKey(r.UsedNotDeclared),
+		DeclaredNotUsed: r.DeclaredNotUsed,
+		DeclaredAndUsed: r.DeclaredAndUsed,
+	}
+}
+
+func (f *JSONFormatter) convertDiff(d *differ.DiffOutput) DiffResultJSON {
+	missing := []string{}
+	extra := []string{}
+	for _, r := range d.Results {
+		if r.DiffType == differ.DiffTypeMissing {
+			missing = append(missing, r.Key)
+		} else if r.DiffType == differ.DiffTypeExtra {
+			extra = append(extra, r.Key)
+		}
+	}
+	return DiffResultJSON{
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+		File1:     d.File1,
+		File2:     d.File2,
+		Missing:   missing,
+		Extra:     extra,
+	}
+}
+
+func (f *JSONFormatter) convertCheck(c *check.CheckResult) CheckResultJSON {
+	return CheckResultJSON{
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+		EnvFile:   "", // not available; maybe from context
+		Missing:   c.MissingKeys,
+		Present:   c.PresentKeys,
+		Empty:     c.EmptyKeys,
+		Valid:     c.Valid,
+	}
+}
+
+func (f *JSONFormatter) convertInfo(e *parser.EnvFile) InfoResultJSON {
+	keys := e.Keys()
+	entries := make([]audittypes.KeyEntry, len(keys))
+	for i, k := range keys {
+		val, _ := e.Get(k)
+		entries[i] = audittypes.KeyEntry{
+			Name:     k,
+			HasValue: val != "",
+			Length:   len(val),
+		}
+	}
+	return InfoResultJSON{
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+		File:      "", // not available
+		Keys:      entries,
+	}
 }
 
 func New(format OutputFormat) Formatter {

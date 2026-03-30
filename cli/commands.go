@@ -34,18 +34,6 @@ func joinInts(nums []int) string {
 	return strings.Join(strs, ",")
 }
 
-func toVarRefs(usage []auditor.EnvUsage) []formatter.VarRef {
-	refs := make([]formatter.VarRef, len(usage))
-	for i, u := range usage {
-		line := 0
-		if len(u.Lines) > 0 {
-			line = u.Lines[0]
-		}
-		refs[i] = formatter.VarRef{Name: u.Key, File: u.File, Line: line}
-	}
-	return refs
-}
-
 func diffMissingExtra(output *differ.DiffOutput) ([]string, []string) {
 	missing := []string{}
 	extra := []string{}
@@ -57,20 +45,6 @@ func diffMissingExtra(output *differ.DiffOutput) ([]string, []string) {
 		}
 	}
 	return missing, extra
-}
-
-func toKeyEntries(env *parser.EnvFile) []formatter.KeyEntry {
-	keys := env.Keys()
-	entries := make([]formatter.KeyEntry, len(keys))
-	for i, k := range keys {
-		val, _ := env.Get(k)
-		entries[i] = formatter.KeyEntry{
-			Name:     k,
-			HasValue: val != "",
-			Length:   len(val),
-		}
-	}
-	return entries
 }
 
 var (

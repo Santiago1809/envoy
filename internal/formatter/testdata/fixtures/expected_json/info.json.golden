@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-03-29T12:00:00Z",
+  "file": "",
+  "keys": [
+    {
+      "name": "DATABASE_URL",
+      "has_value": true,
+      "length": 28
+    },
+    {
+      "name": "API_KEY",
+      "has_value": false,
+      "length": 0
+    }
+  ]
+}
