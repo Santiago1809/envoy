@@ -38,16 +38,25 @@ func Sync(opts *SyncOptions) error {
 	}
 
 	sourceKeys := sourceEnv.Keys()
+	var newKeys []string
 
 	for _, key := range sourceKeys {
 		if _, exists := targetEnv.Get(key); !exists {
 			targetEnv.Set(key, "")
+			newKeys = append(newKeys, key)
 		}
 	}
 
 	if !opts.Yes {
-		fmt.Printf("Sync %s -> %s\n", opts.SourcePath, targetPath)
-		fmt.Println("This will add keys from source that don't exist in target.")
+		fmt.Printf("Syncing %s → %s\n", opts.SourcePath, targetPath)
+		if len(newKeys) > 0 {
+			fmt.Println("New keys to add:")
+			for _, k := range newKeys {
+				fmt.Printf("  + %s\n", k)
+			}
+		} else {
+			fmt.Println("No new keys to add.")
+		}
 		fmt.Print("Continue? [y/N]: ")
 
 		scanner := bufio.NewScanner(os.Stdin)
@@ -61,13 +70,42 @@ func Sync(opts *SyncOptions) error {
 		}
 	}
 
-	err = targetEnv.Write(targetPath)
+	targetOrder := targetEnv.Keys()
+	for _, key := range sourceKeys {
+		if idx := indexOf(targetOrder, key); idx == -1 {
+			targetOrder = append(targetOrder, key)
+		}
+	}
+
+	finalEnv := parser.NewEnvFile()
+	for _, key := range targetOrder {
+		if val, exists := targetEnv.Get(key); exists {
+			finalEnv.Set(key, val)
+		} else {
+			finalEnv.Set(key, "")
+		}
+	}
+
+	err = finalEnv.Write(targetPath)
 	if err != nil {
 		return fmt.Errorf("failed to write target file %s: %w", targetPath, err)
 	}
 
-	fmt.Printf("Successfully synced to %s\n", targetPath)
+	if len(newKeys) > 0 {
+		fmt.Printf("Successfully synced %d new key(s) to %s\n", len(newKeys), targetPath)
+	} else {
+		fmt.Printf("No new keys to sync. %s is up to date.\n", targetPath)
+	}
 	return nil
+}
+
+func indexOf(keys []string, key string) int {
+	for i, k := range keys {
+		if k == key {
+			return i
+		}
+	}
+	return -1
 }
 
 func SyncToExample(sourcePath string, yes bool) error {

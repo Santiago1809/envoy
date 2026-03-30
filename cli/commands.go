@@ -387,18 +387,69 @@ func init() {
 
 var syncCmd = &cobra.Command{
 	Use:   "sync",
-	Short: "Sync keys from .env to .env.example",
+	Short: "Sync keys from source to target .env file",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		stage, _ := cmd.Flags().GetString("stage")
+		from, _ := cmd.Flags().GetString("from")
+		to, _ := cmd.Flags().GetString("to")
+		yes, _ := cmd.Flags().GetBool("yes")
+
 		source := ".env"
+		target := ".env.example"
+
+		if stage != "" && from == "" && to == "" {
+			switch stage {
+			case "development":
+				source = ".env"
+				target = ".env.example"
+			case "staging":
+				source = ".env.staging"
+				target = ".env.staging.example"
+			case "production":
+				source = ".env.production"
+				target = ".env.production.example"
+			default:
+				return fmt.Errorf("invalid stage: %s (valid: development, staging, production)", stage)
+			}
+		}
+
+		if from != "" {
+			source = from
+			if to == "" {
+				if strings.HasSuffix(source, ".example") {
+					return fmt.Errorf("when using --from with a .example file, you must specify --to")
+				}
+				target = source + ".example"
+			}
+		}
+
+		if to != "" {
+			target = to
+		}
+
 		if len(args) > 0 {
 			source = args[0]
+			if target == "" || (from == "" && to == "") {
+				target = source + ".example"
+			}
 		}
-		yes, _ := cmd.Flags().GetBool("yes")
-		return differ.SyncToExample(source, yes)
+
+		if source == target {
+			return fmt.Errorf("source and target cannot be the same file")
+		}
+
+		return differ.Sync(&differ.SyncOptions{
+			SourcePath: source,
+			TargetPath: target,
+			Yes:        yes,
+		})
 	},
 }
 
 func init() {
+	syncCmd.Flags().String("stage", "", "environment stage (development, staging, production)")
+	syncCmd.Flags().String("from", "", "source .env file (default: .env)")
+	syncCmd.Flags().String("to", "", "target .env.example file (default: derived from source)")
 	syncCmd.Flags().BoolP("yes", "y", false, "skip confirmation prompt")
 }
 
