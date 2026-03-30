@@ -18,6 +18,7 @@ import (
 	"github.com/Santiago1809/envforge/internal/check"
 	"github.com/Santiago1809/envforge/internal/crypto"
 	"github.com/Santiago1809/envforge/internal/differ"
+	"github.com/Santiago1809/envforge/internal/formatter"
 	"github.com/Santiago1809/envforge/internal/parser"
 	"github.com/Santiago1809/envforge/internal/watcher"
 
@@ -34,10 +35,11 @@ func joinInts(nums []int) string {
 }
 
 var (
-	Version = "dev"
-	Commit  = "unknown"
-	Date    = "unknown"
-	noColor bool
+	Version      = "dev"
+	Commit       = "unknown"
+	Date         = "unknown"
+	noColor      bool
+	outputFormat = "text"
 )
 
 func Execute() error {
@@ -49,6 +51,7 @@ func init() {
 
 	rootCmd.PersistentFlags().BoolVar(&noColor, "no-color", false, "disable colored output")
 	rootCmd.PersistentFlags().StringP("config", "c", "", "config file (default: ~/.config/envoy/config.yaml)")
+	rootCmd.PersistentFlags().StringVar(&outputFormat, "format", "text", "output format: text|json")
 
 	rootCmd.AddCommand(diffCmd)
 	rootCmd.AddCommand(syncCmd)
@@ -87,6 +90,12 @@ var rootCmd = &cobra.Command{
 	Short: "Smart Environment Variable Manager",
 	Long: `envforge is a developer CLI tool for managing .env files.
 It helps you compare, sync, audit, encrypt, and watch your environment variables.`,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		if outputFormat != "text" && outputFormat != "json" {
+			return fmt.Errorf("invalid format: %s (must be text or json)", outputFormat)
+		}
+		return nil
+	},
 }
 
 var versionCmd = &cobra.Command{
@@ -363,11 +372,26 @@ var diffCmd = &cobra.Command{
 			file2 = args[1]
 		}
 
-		format, _ := cmd.Flags().GetString("format")
+		diffFormat, _ := cmd.Flags().GetString("diff-format")
 		showValues, _ := cmd.Flags().GetBool("show-values")
 		verbose, _ := cmd.Flags().GetBool("verbose")
 
-		hasDiffs, err := differ.DiffFiles(file1, file2, differ.OutputFormat(format), showValues, verbose)
+		if outputFormat == "json" {
+			// Use formatter
+			d := differ.New(file1, file2)
+			d.SetFormat(differ.OutputFormat(diffFormat))
+			d.SetShowValues(showValues)
+			d.SetVerbose(verbose)
+			output, err := d.Diff()
+			if err != nil {
+				return err
+			}
+			f := formatter.New(formatter.FormatJSON)
+			return f.Render(output)
+		}
+
+		// Text mode - use existing diff
+		hasDiffs, err := differ.DiffFiles(file1, file2, differ.OutputFormat(diffFormat), showValues, verbose)
 		if err != nil {
 			return err
 		}
@@ -380,7 +404,7 @@ var diffCmd = &cobra.Command{
 }
 
 func init() {
-	diffCmd.Flags().String("format", "table", "output format: table, json, github")
+	diffCmd.Flags().String("diff-format", "table", "diff output format: table, json, github (only used when --format=text)")
 	diffCmd.Flags().Bool("show-values", false, "show values in diff output (use with caution)")
 	diffCmd.Flags().BoolP("verbose", "v", false, "show matching keys as well")
 }
@@ -481,6 +505,11 @@ var auditCmd = &cobra.Command{
 			return err
 		}
 
+		if outputFormat == "json" {
+			f := formatter.New(formatter.FormatJSON)
+			return f.Render(result)
+		}
+
 		fmt.Println()
 		if len(result.UsedNotDeclared) > 0 {
 			fmt.Printf("USED but NOT DECLARED (%d):\n", len(result.UsedNotDeclared))
@@ -536,6 +565,11 @@ var checkCmd = &cobra.Command{
 		result, err := check.Check(opts)
 		if err != nil {
 			return err
+		}
+
+		if outputFormat == "json" {
+			f := formatter.New(formatter.FormatJSON)
+			return f.Render(result)
 		}
 
 		if !result.Valid {
@@ -744,6 +778,14 @@ var infoCmd = &cobra.Command{
 		env, err := parser.Load(file)
 		if err != nil {
 			return err
+		}
+
+		if outputFormat == "json" {
+			f := formatter.New(formatter.FormatJSON)
+			// We could attach file path to the EnvFile? Easiest: ignore in JSON for now or set via a wrapper
+			// The JSON formatter will render the env keys; it currently leaves File empty.
+			// Could set in the EnvFile a field? Not possible. We'll leave File empty.
+			return f.Render(env)
 		}
 
 		info, _ := os.Stat(file)

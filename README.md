@@ -132,6 +132,27 @@ DECLARED but NOT USED (1):
   - DEBUG_MODE
 ```
 
+---
+
+## Output Format
+
+All commands support a global `--format` flag:
+
+- `--format text` (default): Human-readable colored output.
+- `--format json`: Machine-readable JSON output for automation.
+
+```bash
+# Text output
+envforge audit . --env-file .env.example
+
+# JSON output
+envforge audit . --env-file .env.example --format json
+```
+
+Errors (e.g., file not found) are printed to stderr as plain text regardless of format.
+
+---
+
 ## Commands
 
 ### `diff`
@@ -148,18 +169,22 @@ envforge diff .env.staging .env.production
 # Show values (use with caution - may expose secrets)
 envforge diff --show-values
 
-# JSON output
-envforge diff --format json
+# Table output (default)
+envforge diff --diff-format table
 
 # GitHub Actions format
-envforge diff --format github
+envforge diff --diff-format github
+
+# JSON output (structured JSON via global flag)
+envforge diff --format json
 ```
 
 **Flags:**
 
-- `--format, -f`: Output format: `table` (default), `json`, `github`
+- `--diff-format`: Diff output style: `table` (default), `json`, `github` (only used when global `--format=text`)
 - `--show-values`: Show values in diff output
 - `--verbose, -v`: Show matching keys as well
+- `--format`: Global output format: `text` (default) or `json`
 
 ---
 

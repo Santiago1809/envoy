@@ -12,6 +12,7 @@ type CheckResult struct {
 	Valid         bool
 	MissingKeys   []string
 	EmptyKeys     []string
+	PresentKeys   []string
 	MissingCount  int
 	EmptyCount    int
 	TotalRequired int
@@ -29,6 +30,7 @@ func Check(opts *Options) (*CheckResult, error) {
 		Valid:         true,
 		MissingKeys:   []string{},
 		EmptyKeys:     []string{},
+		PresentKeys:   []string{},
 		MissingCount:  0,
 		EmptyCount:    0,
 		TotalRequired: len(opts.Required),
@@ -80,7 +82,9 @@ func Check(opts *Options) (*CheckResult, error) {
 			continue
 		}
 
-		if !opts.AllowEmpty && value == "" {
+		if opts.AllowEmpty || value != "" {
+			result.PresentKeys = append(result.PresentKeys, key)
+		} else {
 			result.EmptyKeys = append(result.EmptyKeys, key)
 			result.EmptyCount++
 			result.Valid = false

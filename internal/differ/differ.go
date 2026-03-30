@@ -26,6 +26,8 @@ type DiffOutput struct {
 	Results []DiffResult
 	Summary DiffSummary
 	Format  string
+	File1   string
+	File2   string
 }
 
 type DiffSummary struct {
@@ -155,6 +157,8 @@ func (d *Differ) Diff() (*DiffOutput, error) {
 		Results: results,
 		Summary: summary,
 		Format:  string(d.format),
+		File1:   d.file1Path,
+		File2:   d.file2Path,
 	}, nil
 }
 
