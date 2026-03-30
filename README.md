@@ -265,8 +265,11 @@ envforge sync --from .env.dev --to .env.dev.example
 Scan source code for environment variable usage.
 
 ```bash
-# Audit current directory using .env.example
+# Audit current directory using .env.example (text output)
 envforge audit . --env-file .env.example
+
+# Audit with JSON output
+envforge audit . --env-file .env.example --format json
 
 # Audit specific directory
 envforge audit ./src --env-file .env.example
@@ -287,6 +290,7 @@ envforge audit . --env-file .env.example --exclude coverage,build
 - `--lang, -l`: Languages to scan: `go`, `js`, `py`, `sh` (comma-separated)
 - `--exclude, -x`: Additional directories to exclude (appends to defaults: `testdata, vendor, node_modules, .git, dist, build, bin, .agents, .claude, .skills, skills`)
 - `--verbose, -v`: Show declared and used variables
+- `--format`: Global flag: `text` (default) or `json`
 
 **Supported languages:** Go, JavaScript/TypeScript, Python, Shell
 
@@ -297,8 +301,11 @@ envforge audit . --env-file .env.example --exclude coverage,build
 Validate required environment variables are set.
 
 ```bash
-# Check against .env.example
+# Check against .env.example (text output)
 envforge check --from .env.example
+
+# Check with JSON output
+envforge check --from .env.example --format json
 
 # Check specific required keys
 envforge check --required DATABASE_URL,API_KEY,JWT_SECRET
@@ -316,6 +323,7 @@ envforge check --from .env.example --allow-empty
 - `--from, -f`: Use keys from `.env.example` file
 - `--allow-empty`: Allow empty values
 - `--prefix`: Filter by key prefix (e.g. `AWS_`)
+- `--format`: Global flag: `text` (default) or `json`
 
 ---
 
@@ -403,8 +411,12 @@ envforge watch .env --exec "systemctl reload app" --debounce 500
 Print information about a `.env` file.
 
 ```bash
+# Text output
 envforge info .env
 envforge info .env.example
+
+# JSON output
+envforge info .env --format json
 ```
 
 ---

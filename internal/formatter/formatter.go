@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/Santiago1809/envforge/internal/auditor"
 	"github.com/Santiago1809/envforge/internal/check"
@@ -26,7 +25,7 @@ func (f *TextFormatter) Render(data any) error {
 	case *parser.EnvFile:
 		return f.renderInfo(v)
 	default:
-		return fmt.Errorf("unsupported data type for text formatter")
+		return fmt.Errorf("unsupported data type for text formatter: %T", data)
 	}
 }
 
@@ -139,107 +138,9 @@ func joinInts(nums []int) string {
 type JSONFormatter struct{}
 
 func (f *JSONFormatter) Render(data any) error {
-	timestamp := time.Now().UTC().Format(time.RFC3339)
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
-
-	switch v := data.(type) {
-	case *auditor.AuditResult:
-		usedRefs := toVarRefs(v.UsedNotDeclared)
-		declaredKeys := emptyIfNil(v.DeclaredNotUsed)
-		out := AuditResultJSON{
-			Timestamp:    timestamp,
-			Language:     "all",
-			Used:         usedRefs,
-			Declared:     declaredKeys,
-			OnlyUsed:     toStringKeys(usedRefs),
-			OnlyDeclared: declaredKeys,
-		}
-		return enc.Encode(out)
-
-	case *differ.DiffOutput:
-		missing, extra := extractKeys(v.Results)
-		out := DiffResultJSON{
-			Timestamp: timestamp,
-			File1:     v.File1,
-			File2:     v.File2,
-			Missing:   missing,
-			Extra:     extra,
-		}
-		return enc.Encode(out)
-
-	case *check.CheckResult:
-		out := CheckResultJSON{
-			Timestamp: timestamp,
-			EnvFile:   "", // will be set by caller if needed
-			Missing:   emptyIfNil(v.MissingKeys),
-			Present:   emptyIfNil(v.PresentKeys),
-			Empty:     emptyIfNil(v.EmptyKeys),
-			Valid:     v.Valid,
-		}
-		return enc.Encode(out)
-
-	case *parser.EnvFile:
-		keys := v.Keys()
-		entries := make([]KeyEntry, len(keys))
-		for i, k := range keys {
-			val, _ := v.Get(k)
-			entries[i] = KeyEntry{
-				Name:     k,
-				HasValue: val != "",
-				Length:   len(val),
-			}
-		}
-		out := InfoResultJSON{
-			Timestamp: timestamp,
-			File:      "", // will be set by caller if needed
-			Keys:      entries,
-		}
-		return enc.Encode(out)
-
-	default:
-		return fmt.Errorf("unsupported data type for JSON formatter")
-	}
-}
-
-func emptyIfNil(s []string) []string {
-	if s == nil {
-		return []string{}
-	}
-	return s
-}
-
-func toVarRefs(usage []auditor.EnvUsage) []VarRef {
-	refs := make([]VarRef, len(usage))
-	for i, u := range usage {
-		line := 0
-		if len(u.Lines) > 0 {
-			line = u.Lines[0]
-		}
-		refs[i] = VarRef{Name: u.Key, File: u.File, Line: line}
-	}
-	return refs
-}
-
-func toStringKeys(refs []VarRef) []string {
-	keys := make([]string, len(refs))
-	for i, r := range refs {
-		keys[i] = r.Name
-	}
-	return keys
-}
-
-func extractKeys(results []differ.DiffResult) ([]string, []string) {
-	missing := []string{}
-	extra := []string{}
-	for _, r := range results {
-		if r.DiffType == differ.DiffTypeMissing {
-			missing = append(missing, r.Key)
-		} else if r.DiffType == differ.DiffTypeExtra {
-			extra = append(extra, r.Key)
-		}
-	}
-	return missing, extra
+	return enc.Encode(data)
 }
 
 func New(format OutputFormat) Formatter {
