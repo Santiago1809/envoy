@@ -207,11 +207,14 @@ envforge sync --yes
 ```bash
 # Sync a specific stage
 envforge sync --stage development  # → .env → .env.development
-envforge sync --stage staging      # → .env.staging → .env.staging
-envforge sync --stage production   # → .env.production → .env.production
+envforge sync --stage staging      # → .env → .env.staging
+envforge sync --stage production   # → .env → .env.production
+
+# If .env doesn't exist, it's created automatically
+envforge sync --stage production   # Creates .env if missing
 
 # Explicit source and destination
-envforge sync --from .env.production --to .env.production
+envforge sync --from .env --to .env.production
 
 # Combine stage with explicit paths (stage is ignored if --from/--to are set)
 envforge sync --stage production --from .env --to .env.dev
@@ -245,12 +248,17 @@ envforge check --from .env.development
 ```bash
 # Using stages (recommended for multi-env projects)
 envforge sync --stage production
-# Syncing .env.production → .env.production
+# Syncing .env → .env.production
 #  + NEW_KEY (added)
 # Successfully synced 1 new key to .env.production
 
+# If .env doesn't exist, it's created automatically
+envforge sync --stage production
+# Source file .env does not exist. Creating empty file...
+# Successfully synced 0 new key(s) to .env.production
+
 # Explicit files
-envforge sync --from .env.staging --to .env.staging --yes
+envforge sync --from .env --to .env.staging --yes
 
 # Legacy mode (no stage)
 envforge sync                    # .env → .env.example
@@ -647,11 +655,13 @@ Envforge makes it easy to manage multiple environment stages (development, stagi
 
 **File naming convention:**
 
-| Stage      | Source File          | Target File            |
-|------------|---------------------|------------------------|
-| development| `.env`              | `.env.development`     |
-| staging    | `.env.staging`      | `.env.staging`         |
-| production | `.env.production`   | `.env.production`      |
+| Stage      | Source File | Target File       |
+|------------|-------------|------------------|
+| development| `.env`      | `.env.development` |
+| staging    | `.env`      | `.env.staging`    |
+| production | `.env`      | `.env.production` |
+
+> **Note:** All stages use `.env` as the source. If `.env` doesn't exist, it will be created automatically.
 
 **Usage:**
 
@@ -680,15 +690,15 @@ This is useful if you use custom file naming conventions.
 ```bash
 # Before deploying to staging
 envforge sync --stage staging
-envforge check --from .env.staging.example
+envforge check --from .env.staging
 
 # Before deploying to production
 envforge sync --stage production
-envforge check --from .env.production.example
+envforge check --from .env.production
 
 # Local development
 envforge sync --stage development
-envforge check --from .env.example
+envforge check --from .env.development
 ```
 
 ---

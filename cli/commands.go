@@ -434,6 +434,7 @@ var syncCmd = &cobra.Command{
 
 		source := ".env"
 		target := ".env.example"
+		autoCreateSource := false
 
 		if stage != "" && from == "" && to == "" {
 			switch stage {
@@ -441,14 +442,15 @@ var syncCmd = &cobra.Command{
 				source = ".env"
 				target = ".env.development"
 			case "staging":
-				source = ".env.staging"
+				source = ".env"
 				target = ".env.staging"
 			case "production":
-				source = ".env.production"
+				source = ".env"
 				target = ".env.production"
 			default:
 				return fmt.Errorf("invalid stage: %s (valid: development, staging, production)", stage)
 			}
+			autoCreateSource = true
 		}
 
 		if from != "" {
@@ -474,6 +476,16 @@ var syncCmd = &cobra.Command{
 
 		if source == target {
 			return fmt.Errorf("source and target cannot be the same file")
+		}
+
+		if autoCreateSource {
+			if _, err := os.Stat(source); os.IsNotExist(err) {
+				fmt.Printf("Source file %s does not exist. Creating empty file...\n", source)
+				err := os.WriteFile(source, []byte("# Environment variables\n"), 0644)
+				if err != nil {
+					return fmt.Errorf("failed to create source file: %w", err)
+				}
+			}
 		}
 
 		return differ.Sync(&differ.SyncOptions{
