@@ -401,13 +401,13 @@ var syncCmd = &cobra.Command{
 			switch stage {
 			case "development":
 				source = ".env"
-				target = ".env.example"
+				target = ".env.development"
 			case "staging":
 				source = ".env.staging"
-				target = ".env.staging.example"
+				target = ".env.staging"
 			case "production":
 				source = ".env.production"
-				target = ".env.production.example"
+				target = ".env.production"
 			default:
 				return fmt.Errorf("invalid stage: %s (valid: development, staging, production)", stage)
 			}

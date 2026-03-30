@@ -181,22 +181,38 @@ envforge sync --yes
 
 ```bash
 # Sync a specific stage
-envforge sync --stage development  # → .env → .env.example
-envforge sync --stage staging      # → .env.staging → .env.staging.example
-envforge sync --stage production   # → .env.production → .env.production.example
+envforge sync --stage development  # → .env → .env.development
+envforge sync --stage staging      # → .env.staging → .env.staging
+envforge sync --stage production   # → .env.production → .env.production
 
 # Explicit source and destination
-envforge sync --from .env.production --to .env.production.example
+envforge sync --from .env.production --to .env.production
 
 # Combine stage with explicit paths (stage is ignored if --from/--to are set)
-envforge sync --stage production --from .env --to .env.dev.example
+envforge sync --stage production --from .env --to .env.dev
+```
+
+**Typical workflow with stages:**
+
+```bash
+# Before deploying to staging
+envforge sync --stage staging
+envforge check --from .env.staging
+
+# Before deploying to production
+envforge sync --stage production
+envforge check --from .env.production
+
+# Local development
+envforge sync --stage development
+envforge check --from .env.development
 ```
 
 **Flags:**
 
 - `--stage, -s`: Environment stage (`development`, `staging`, `production`). Automatically resolves source/target files.
 - `--from, -f`: Source `.env` file (default: `.env` or stage-based)
-- `--to, -t`: Target `.env.example` file (default: derived from source by appending `.example` or replacing suffix)
+- `--to, -t`: Target env file (default: derived from source - for stages uses stage name, otherwise `.example` suffix)
 - `--yes, -y`: Skip confirmation prompt
 
 **Examples:**
@@ -204,14 +220,15 @@ envforge sync --stage production --from .env --to .env.dev.example
 ```bash
 # Using stages (recommended for multi-env projects)
 envforge sync --stage production
-# Syncing .env.production → .env.production.example
+# Syncing .env.production → .env.production
 #  + NEW_KEY (added)
-# Successfully synced 1 new key to .env.production.example
+# Successfully synced 1 new key to .env.production
 
 # Explicit files
-envforge sync --from .env.staging --to .env.staging.example --yes
+envforge sync --from .env.staging --to .env.staging --yes
 
-# With custom suffix (if you use .env.dev instead of .env.staging)
+# Legacy mode (no stage)
+envforge sync                    # .env → .env.example
 envforge sync --from .env.dev --to .env.dev.example
 ```
 
@@ -511,11 +528,11 @@ Envforge makes it easy to manage multiple environment stages (development, stagi
 
 **File naming convention:**
 
-| Stage      | Source File          | Target File              |
-|------------|---------------------|--------------------------|
-| development| `.env`              | `.env.example`           |
-| staging    | `.env.staging`      | `.env.staging.example`   |
-| production | `.env.production`   | `.env.production.example`|
+| Stage      | Source File          | Target File            |
+|------------|---------------------|------------------------|
+| development| `.env`              | `.env.development`     |
+| staging    | `.env.staging`      | `.env.staging`         |
+| production | `.env.production`   | `.env.production`      |
 
 **Usage:**
 
